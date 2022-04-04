@@ -1,8 +1,11 @@
-import allel
+from genome import Genome
+from population import Population
 
 # TODO: Set up mating structures
 
-# TODO: Set up simulations
+# TODO: Set up genomes using Genome
+
+# TODO: Set up simulations using Population
 
 # TODO: Run simulations for each mating structure, recording regular time points
 
