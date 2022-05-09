@@ -12,11 +12,15 @@ for ms in mating_structures:
     generations = 100
     with open(pop.name + '.txt', 'w') as f:
         print("Simulating", pop.name + "...")
-        f.write("{};{};{}\n".format(pop.name, len(pop.get_population()), generations))
+        f.write("name,N,generations\n")
+        f.write("{},{},{}\n".format(pop.name, len(pop.get_population()), generations))
+        f.write("generation,average r2,|D|\n")
         for i in range(100):
             pop.run(1)
 
-            f.write("{};{}\n".format(pop.get_generation(), pop.linkage_disequilibrium_r2().tolist()))
+            r2 = pop.linkage_disequilibrium_avg_r2()
+            D = pop.linkage_disequilibrium_avg_D()
+            f.write("{},{}\n".format(pop.get_generation(), r2, D))
             
             # Analyze LD between different structures, run ANOVA and possibly other tests
             # f.write("{};{};{}\n".format(pop.name, len(p), pop.get_generation()))
