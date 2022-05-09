@@ -25,7 +25,9 @@ def monogamy(population):
     pop = population.get_population()
     num = population.N
     male = [g for g in pop if g.male]
+    male_fitnesses = fitnesses(male)
     female = [g for g in pop if not g.male]
+    female_fitnesses = fitnesses(female)
     get_relative_fitness = lambda g, fs: len([0 for f in fs if f <= g.get_fitness()]) / len(fs)
     
     pop.clear()

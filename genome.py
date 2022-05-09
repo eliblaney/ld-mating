@@ -5,7 +5,6 @@ import math
 haplotypes = [["ATGCACTGTGGATCCAGGTGCCGATATTTATACCAGGGGAACAGCACAACATGA", "ATGCACTGTGGATCAAAAAAAAAAAAAAAAAACCAGGGGAACAGCACAACATGA"], ["ATGGTGATGGACCATGGATTCCAGGATTGGACTAGACCATGGCCCACGTGCTAG", "ATGGTGATGGACCATGGATTCCATTTTTTTTTTTTTTTTTTTTTCACGTGCTAG"]]
 
 class Genome:
-
     seq1 = ""
     seq2 = ""
     exons1 = []
@@ -141,50 +140,92 @@ class Genome:
     #     return alleles
             
     def get_fitness(self):
-        fitness += sum(len(re.findall(r"[GC]")))
-        for alleles in self.get_biallelic():
-            for allele in alleles:
-                for x in allele:
-                    if x >= 0:
-                        fitness *= 1.2
-                    else:
-                        fitness /= 1.2
+        fitness = sum([sum([seq.count('G') + seq.count('C') for seq in exon]) for exon in [self.get_exons1(), self.get_exons2()]])
+        for allele in self.get_biallelic():
+            for x in allele:
+                if x >= 0:
+                    fitness *= 1.2
+                else:
+                    fitness /= 2
         return fitness
 
-    def get_biallelic(self, haplotypes=haplotypes):
+    def get_biallelic(self, fill=-1, haplotypes=haplotypes):
         alleles = []
-        for haplotype in len(haplotypes):
+        for haplotype in range(len(haplotypes)):
             allele = []
-            for exon in genome.get_exons1():
-                matched = False
-                for i in range(len(haplotype)):
-                    variant = haplotype[i]
-                    if matches(exon, h):
+            matched = False
+            for exon in self.get_exons1():
+                if matched:
+                    break
+                for i in range(len(haplotypes[haplotype])):
+                    variant = haplotypes[haplotype][i]
+                    if len(exon) < len(variant):
+                        continue
+                    if matches(exon, variant):
                         allele.append(i)
                         matched = True
                         break
-                if not matched:
-                    allele.append(-1)
-            for exon in genome.get_exons2():
-                matched = False
-                for i in range(len(haplotype)):
-                    variant = haplotype[i]
-                    if matches(exon, h):
+            if not matched:
+                allele.append(fill)
+            matched = False
+            for exon in self.get_exons2():
+                if matched:
+                    break
+                for i in range(len(haplotypes[haplotype])):
+                    variant = haplotypes[haplotype][i]
+                    if len(exon) < len(variant):
+                        continue
+                    if matches(exon, variant):
                         allele.append(i)
                         matched = True
                         break
-                if not matched:
-                    allele.append(-1)
+            if not matched:
+                allele.append(fill)
             alleles.append(allele)
-        return haplotype
+        return alleles
+
+#     def get_biallelic(self, haplotype, fill=-1, haplotypes=haplotypes):
+#         biallelic = []
+#         matched = False
+#         for exon in self.get_exons1():
+#             if matched:
+#                 break
+#             for i in range(len(haplotype)):
+#                 variant = haplotype[i]
+#                 if matches(exon, variant):
+#                     biallelic.append(i)
+#                     matched = True
+#                     break
+#         if not matched:
+#             biallelic.append(fill)
+#         matched = False
+#         for exon in self.get_exons2():
+#             if matched:
+#                 break
+#             for i in range(len(haplotype)):
+#                 variant = haplotype[i]
+#                 if matches(exon, variant):
+#                     biallelic.append(i)
+#                     matched = True
+#                     break
+#         if not matched:
+#             biallelic.append(fill)
+#         return biallelic
 
     def insert_haplotypes(self):
+        hi = random.choice([0, 1]) # Complete linkage disequilibrium: all homozygous
+        skip = -1
         for haplotype in haplotypes:
+            skip += 1
             first_strand = True
             for chromatid in self.get_exon_positions():
+                skip_i = skip
                 for start, end in chromatid:
                     if start + end > max(map(len, haplotype)):
-                        h = random.choice(haplotype)
+                        if skip_i:
+                            skip_i -= 1
+                            continue
+                        h = haplotype[hi]
                         if first_strand:
                             first_strand = False
                             self.seq1 = self.seq1[:start] + h + self.seq1[start + len(h):]
@@ -214,23 +255,20 @@ def markov_model(probabilities=default_probabilities):
     states = "ACGT*>"
     return [dict(zip(states, [*p[0], *p[1]])) for p in default_probabilities]
 
-def random_haplotype_gene():
-    return random.choice(random.choice(haplotypes))
-
 def matches(a, b, threshold=0.9):
     la = len(a)
     lb = len(b)
     l = min(la, lb)
     diff = abs(la - lb)
     count = 0
-    for i in l:
+    for i in range(l):
         j = a[i]
         k = b[i]
         if j == k:
             count += 1
-    return count / l
+    return count / l >= threshold
 
-def random_genome(min_length=100000, markov=markov_model):
+def random_genome(min_length=100000, markov=markov_model, min_stage_len=25):
     seq = ""
     length = 0
     exons = []
@@ -242,7 +280,7 @@ def random_genome(min_length=100000, markov=markov_model):
     while length < min_length:
         l = 1
         threshold = mm[stage]['*']
-        while random.random() < threshold:
+        while random.random() < threshold or (threshold != 0 and l < min_stage_len):
             l += 1
         if stage == 3: # Mark exon bounds
             exons.append([length, length+l])

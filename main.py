@@ -10,17 +10,16 @@ for ms in mating_structures:
     pop = Population(ms.__name__, ms, population_size=100)
 
     generations = 100
-    with open(pop.name + '.txt', 'w') as f:
-        print("Simulating", pop.name + "...")
-        f.write("name,N,generations\n")
-        f.write("{},{},{}\n".format(pop.name, len(pop.get_population()), generations))
-        f.write("generation,average r2,|D|\n")
-        for i in range(100):
+    with open(pop.name + '.csv', 'w') as f:
+        print("Simulating {} with {} generations and a population size of {}...".format(pop.name, generations, len(pop.get_population())))
+        f.write("generation,Dmin,Dmax\n")
+        for i in range(generations):
+            if i % (generations / 5) == 0:
+                print("{:.0f}% complete...".format(i / generations * 100))
             pop.run(1)
 
-            r2 = pop.linkage_disequilibrium_avg_r2()
-            D = pop.linkage_disequilibrium_avg_D()
-            f.write("{},{}\n".format(pop.get_generation(), r2, D))
+            Dmin, Dmax = pop.linkage_disequilibrium_avg_D()
+            f.write("{},{},{}\n".format(pop.get_generation(), Dmin, Dmax))
             
             # Analyze LD between different structures, run ANOVA and possibly other tests
             # f.write("{};{};{}\n".format(pop.name, len(p), pop.get_generation()))
